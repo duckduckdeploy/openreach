@@ -80,6 +80,15 @@ export default function HomePage() {
               license: 'https://opensource.org/license/mit',
               offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
             },
+            {
+              '@type': 'Organization',
+              '@id': `${SITE_URL}/#organization`,
+              name: SITE_NAME,
+              url: SITE_URL,
+              logo: `${SITE_URL}/apple-icon.png`,
+              sameAs: [GITHUB_URL],
+            },
+            { '@type': 'WebSite', '@id': `${SITE_URL}/#website`, name: SITE_NAME, url: SITE_URL, publisher: { '@id': `${SITE_URL}/#organization` } },
             faqPage(homeFaqs),
           ],
         }}

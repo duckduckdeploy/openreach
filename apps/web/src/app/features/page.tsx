@@ -1,20 +1,23 @@
 import { CtaBand } from '@/components/cta-band';
 import { YepapiOffer } from '@/components/yepapi-offer';
 import { FeatureGrid } from '@/components/feature-grid';
+import { JsonLd } from '@/components/json-ld';
 import { SectionHeader, StatusNote } from '@/components/section';
 import { features } from '@/content/features';
 import { pageMeta } from '@/lib/metadata';
+import { breadcrumbList } from '@/lib/schema';
 
 export const metadata = pageMeta({
   title: 'Lead Generation Software Features',
   description:
-    'OpenReach features: an influencer outreach tracker, lead generation across whole cities, brand mention alerts, social listening and a marketing MCP server.',
+    'OpenReach features: an influencer CRM, lead generation across whole cities, brand mention alerts, social listening and a marketing MCP server.',
   path: '/features',
 });
 
 export default function FeaturesPage() {
   return (
     <>
+      <JsonLd data={{ '@context': 'https://schema.org', ...breadcrumbList([{ name: 'Features', path: '/features' }]) }} />
       <section aria-labelledby="features-title" className="container-page py-20 md:py-28 xl:py-32">
         <SectionHeader
           as="h1"

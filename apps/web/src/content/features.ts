@@ -51,14 +51,14 @@ export const UNLISTED_PRICE_LABEL = 'Listed in Settings and usage';
 
 export const features: Feature[] = [
   {
-    slug: 'influencer-outreach',
-    name: 'Influencer outreach',
-    seoTitle: 'Influencer Outreach Tracker for Creators',
-    h1: 'Influencer outreach tracker',
+    slug: 'influencer-crm',
+    name: 'Influencer CRM',
+    seoTitle: 'Influencer CRM: Track Creators From Found to Won',
+    h1: 'Influencer CRM',
     headline: 'Every creator you found, and where each one stands.',
     summary: 'Save creators to a project with a status, notes and tags, and refresh their numbers before you reach out.',
-    description: 'Influencer outreach tracker: save YouTube, TikTok and Instagram creators to a project, track each from to contact to won, with notes, tags and fresh stats.',
-    whatTitle: 'How influencer outreach tracking works',
+    description: 'Influencer CRM for YouTube, TikTok and Instagram creators: track each one from to contact to won, with notes, tags, contacts and fresh stats.',
+    whatTitle: 'How influencer management works in OpenReach',
     icon: UsersRound,
     worksWith: ['youtube', 'tiktok', 'instagram'],
     what: [

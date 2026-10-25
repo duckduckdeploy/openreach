@@ -2,7 +2,7 @@ import type { GlossaryTerm } from './types';
 
 const finder = { href: '/tools/influencer-search-tool', label: 'Open the influencer search tool' };
 const calculator = { href: '/tools/engagement-rate-calculator', label: 'Open the engagement rate calculator' };
-const outreach = { href: '/features/influencer-outreach', label: 'See influencer outreach in OpenReach' };
+const outreach = { href: '/features/influencer-crm', label: 'See the influencer CRM in OpenReach' };
 
 export const terms: GlossaryTerm[] = [
   {

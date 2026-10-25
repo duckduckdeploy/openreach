@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import { ArrowRight, BookOpen, GraduationCap, Library, Server, type LucideIcon } from 'lucide-react';
+import { JsonLd } from '@/components/json-ld';
 import { StatusNote } from '@/components/section';
 import { docSections, docsIn, type DocSection } from '@/content/docs';
 import { pageMeta } from '@/lib/metadata';
+import { breadcrumbList } from '@/lib/schema';
 
 export const metadata = pageMeta({
-  title: 'Docs: Lead Generation Tutorials and API Reference',
+  title: 'Docs: Lead Generation Tutorials & API Reference',
   description: 'How OpenReach works, step-by-step tutorials for finding influencers, leads and customers, self-hosting, and the REST API and MCP references.',
   path: '/docs',
 });
@@ -27,6 +29,7 @@ const SECTION_ICON: Record<DocSection, LucideIcon> = {
 export default function DocsIndexPage() {
   return (
     <div className="min-w-0">
+      <JsonLd data={{ '@context': 'https://schema.org', ...breadcrumbList([{ name: 'Docs', path: '/docs' }]) }} />
       <p className="eyebrow">Docs</p>
       <h1 className="text-title mt-5">OpenReach docs and tutorials</h1>
       <p className="text-lede mt-5 max-w-2xl text-pretty">
