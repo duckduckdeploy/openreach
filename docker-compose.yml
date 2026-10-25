@@ -1,0 +1,121 @@
+# The whole of OpenReach with one command:
+#
+#   cp .env.example .env      # then set AUTH_SECRET and ENCRYPTION_KEY
+#   docker compose up -d --build
+#
+# Dashboard http://localhost:3300, site http://localhost:3301, API and MCP http://localhost:4300.
+#
+# On a server with a domain, set OPENREACH_DOMAIN and the public URLs in .env and add HTTPS:
+#   docker compose --profile https up -d --build
+#
+# For development, start only the database: docker compose up -d postgres
+
+x-urls: &urls
+  # Public addresses. Defaults suit one computer; set them in .env for a server with a domain.
+  APP_URL: ${APP_URL:-http://localhost:3300}
+  WEB_URL: ${WEB_URL:-http://localhost:3301}
+  API_URL: ${PUBLIC_API_URL:-http://localhost:4300}
+
+x-build: &build
+  context: .
+  args:
+    API_URL: http://api:4300
+    NEXT_PUBLIC_APP_URL: ${APP_URL:-http://localhost:3300}
+    NEXT_PUBLIC_SITE_URL: ${WEB_URL:-http://localhost:3301}
+    NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4300}
+    NEXT_PUBLIC_GITHUB_URL: ${NEXT_PUBLIC_GITHUB_URL:-}
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: openreach
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-openreach}
+      POSTGRES_DB: openreach
+    # Only reachable from this machine; the other services use the internal network.
+    ports:
+      - "127.0.0.1:5436:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openreach -d openreach"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: *build
+    image: openreach:local
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      <<: *urls
+      NODE_ENV: production
+      DATABASE_URL: postgres://openreach:${POSTGRES_PASSWORD:-openreach}@postgres:5432/openreach
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env (32+ random characters)}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set ENCRYPTION_KEY in .env (openssl rand -base64 32)}
+      API_PORT: "4300"
+    ports:
+      - "${API_BIND:-127.0.0.1}:4300:4300"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4300/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  app:
+    build: *build
+    image: openreach:local
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    working_dir: /openreach/apps/app
+    command: ["node_modules/.bin/next", "start", "-p", "3300", "-H", "0.0.0.0"]
+    environment:
+      API_URL: http://api:4300
+    ports:
+      - "${APP_BIND:-127.0.0.1}:3300:3300"
+
+  web:
+    build: *build
+    image: openreach:local
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    working_dir: /openreach/apps/web
+    command: ["node_modules/.bin/next", "start", "-p", "3301", "-H", "0.0.0.0"]
+    environment:
+      API_URL: http://api:4300
+    ports:
+      - "${WEB_BIND:-127.0.0.1}:3301:3301"
+
+  # HTTPS for a server with a domain: certificates from Let's Encrypt, renewed automatically.
+  # Point OPENREACH_DOMAIN, app.OPENREACH_DOMAIN and api.OPENREACH_DOMAIN at the server first.
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [app, web, api]
+    environment:
+      OPENREACH_DOMAIN: ${OPENREACH_DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:

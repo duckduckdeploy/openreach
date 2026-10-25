@@ -1,0 +1,91 @@
+/**
+ * Runs before every integration test file, in that file's module context:
+ *  - a fake YepAPI on a random port (src/testing/fake-yepapi.ts), which also answers for the free
+ *    community APIs (Hacker News, GitHub, Stack Exchange)
+ *  - the environment the API validates at import time
+ *  - `../src/db` replaced by two in-memory Postgres databases (PGlite), core and project data,
+ *    each with its real migrations applied
+ *  - `../src/jobs/queue` replaced by a recorder, so tests run job handlers themselves
+ *  - YepAPI's keyless location lookup answered locally
+ */
+import { fileURLToPath } from "node:url";
+import { LOCATIONS_URL } from "@openreach/yepapi";
+import { afterAll, vi } from "vitest";
+import { startFakeYepApi } from "../src/testing/fake-yepapi";
+import { harness } from "./harness";
+
+const fake = await startFakeYepApi();
+harness.fake = fake;
+
+Object.assign(process.env, {
+  NODE_ENV: "test",
+  DATABASE_URL: "postgres://unused-in-tests",
+  AUTH_SECRET: "test-secret-that-is-long-enough-for-better-auth",
+  ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
+  YEPAPI_BASE_URL: fake.url,
+  APP_URL: "http://localhost:3300",
+  API_URL: "http://localhost:4300",
+  WEB_URL: "http://localhost:3301",
+  RUN_WORKER: "false",
+  COMMUNITY_API_BASE_URL: fake.url,
+});
+
+vi.mock("../src/db", async () => {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { drizzle } = await import("drizzle-orm/pglite");
+  const { migrate } = await import("drizzle-orm/pglite/migrator");
+  const schema = await import("../src/db/schema");
+  const coreSchema = await import("../src/db/core-schema");
+  const dataSchema = await import("../src/db/data-schema");
+  // Two separate in-memory databases, as in production: a query sent to the wrong one fails.
+  const client = new PGlite();
+  const dataClient = new PGlite();
+  const db = drizzle(client, { schema: coreSchema });
+  const dataDb = drizzle(dataClient, { schema: dataSchema });
+  await migrate(db, { migrationsFolder: fileURLToPath(new URL("../drizzle", import.meta.url)) });
+  await migrate(dataDb, { migrationsFolder: fileURLToPath(new URL("../drizzle-data", import.meta.url)) });
+  const { harness } = await import("./harness");
+  harness.pg = client;
+  harness.dataPg = dataClient;
+  const end = { end: async () => {} };
+  return { db, dataDb, schema, pool: end, dataPool: end, dataDatabaseUrl: () => "postgres://unused-in-tests" };
+});
+
+vi.mock("../src/jobs/queue", async () => {
+  const { harness } = await import("./harness");
+  return {
+    enqueue: async (name: string, data: unknown) => {
+      if (harness.queueDown) throw new Error("queue is down");
+      harness.enqueued.push({ name, data });
+    },
+    defineJob: (name: string, _concurrency: number, handler: (data: unknown, log: unknown) => Promise<void>) => {
+      harness.jobs.set(name, handler);
+    },
+    startWorker: async () => {},
+    stopWorker: async () => {},
+  };
+});
+
+// A small slice of YepAPI's public location list, so no test reaches the network.
+const LOCATIONS = [
+  { code: 2840, name: "United States", country: "US", type: "Country", serp: true, volume: true },
+  { code: 2276, name: "Germany", country: "DE", type: "Country", serp: true, volume: true },
+  { code: 2826, name: "United Kingdom", country: "GB", type: "Country", serp: true, volume: true },
+  { code: 1026201, name: "Austin,Texas,United States", country: "US", type: "City", serp: true, volume: true },
+];
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+  const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  if (url.startsWith(LOCATIONS_URL)) {
+    const q = (new URL(url).searchParams.get("q") ?? "").toLowerCase();
+    const results = LOCATIONS.filter((row) => String(row.code) === q || row.name.toLowerCase().includes(q));
+    return new Response(JSON.stringify({ ok: true, total: results.length, results }), { headers: { "content-type": "application/json" } });
+  }
+  return realFetch(input, init);
+}) as typeof fetch;
+
+afterAll(async () => {
+  await fake.close();
+  await harness.pg?.close();
+  await harness.dataPg?.close();
+});

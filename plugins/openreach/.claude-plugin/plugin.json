@@ -1,0 +1,8 @@
+{
+  "name": "openreach",
+  "version": "0.1.0",
+  "description": "OpenReach over MCP, with skills for finding influencers, leads and customers and monitoring brand mentions. Set OPENREACH_API_KEY (an oreach_ key from Settings) and, when self-hosting, OPENREACH_MCP_URL.",
+  "author": { "name": "OpenReach" },
+  "license": "MIT",
+  "keywords": ["marketing", "mcp", "influencers", "lead-generation", "brand-monitoring", "reddit"]
+}

@@ -1,0 +1,29 @@
+# HTTPS in front of OpenReach, for `docker compose --profile https up -d`.
+# Needs DNS records for OPENREACH_DOMAIN, app.OPENREACH_DOMAIN and api.OPENREACH_DOMAIN pointing at
+# this server, and ports 80 and 443 open. Certificates come from Let's Encrypt automatically.
+
+(common) {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+{$OPENREACH_DOMAIN} {
+	import common
+	reverse_proxy web:3301
+}
+
+app.{$OPENREACH_DOMAIN} {
+	import common
+	header X-Frame-Options "DENY"
+	reverse_proxy app:3300
+}
+
+api.{$OPENREACH_DOMAIN} {
+	import common
+	reverse_proxy api:4300
+}

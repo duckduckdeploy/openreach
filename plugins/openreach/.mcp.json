@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "openreach": {
+      "type": "http",
+      "url": "${OPENREACH_MCP_URL:-https://api.openreach.gg/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${OPENREACH_API_KEY}"
+      }
+    }
+  }
+}

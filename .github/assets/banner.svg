@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-label="OpenReach: the open-source customer and influencer finder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5b1a86"/>
+      <stop offset="0.45" stop-color="#c81e64"/>
+      <stop offset="0.8" stop-color="#ef5a2e"/>
+      <stop offset="1" stop-color="#f9b530"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.15" r="0.6">
+      <stop offset="0" stop-color="#ffd27a" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ffd27a" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <clipPath id="frame"><rect width="1280" height="400" rx="24"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="1280" height="400" fill="url(#bg)"/>
+    <rect width="1280" height="400" fill="url(#grid)"/>
+    <rect width="1280" height="400" fill="url(#glow)"/>
+
+    <!-- Wordmark and tagline -->
+    <g font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Inter, Helvetica, Arial, sans-serif" fill="#ffffff">
+      <rect x="80" y="86" width="206" height="34" rx="17" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-opacity="0.3"/>
+      <circle cx="101" cy="103" r="5" fill="#4ade80"/>
+      <text x="116" y="109" font-size="16" font-weight="600" letter-spacing="0.5">MIT · SELF-HOSTED</text>
+
+      <text x="78" y="212" font-size="92" font-weight="800" letter-spacing="-3">OpenReach</text>
+      <text x="82" y="262" font-size="28" font-weight="500" fill-opacity="0.92">Find your customers, leads and creators.</text>
+      <text x="82" y="312" font-size="18" font-weight="500" fill-opacity="0.72">Influencers · Google Maps leads · Brand mentions · Customers in communities · MCP</text>
+    </g>
+
+    <!-- Illustration: a feed of conversations, with an intent bar each -->
+    <g transform="translate(860 82)" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Inter, Helvetica, Arial, sans-serif" fill="#ffffff">
+      <rect width="340" height="236" rx="18" fill="#2a0b1f" fill-opacity="0.4" stroke="#ffffff" stroke-opacity="0.28"/>
+      <text x="24" y="38" font-size="14" font-weight="600" fill-opacity="0.75" letter-spacing="0.6">PEOPLE ASKING FOR YOU</text>
+      <g transform="translate(24 60)">
+        <text font-size="12" fill-opacity="0.7">r/smallbusiness</text>
+        <text y="20" font-size="15" font-weight="600">“Best CRM for a 3-person team?”</text>
+        <rect y="30" width="200" height="6" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+        <rect y="30" width="176" height="6" rx="3" fill="#ffffff"/>
+      </g>
+      <g transform="translate(24 118)">
+        <text font-size="12" fill-opacity="0.7">Hacker News</text>
+        <text y="20" font-size="15" font-weight="600">“Any tool for tracking leads?”</text>
+        <rect y="30" width="200" height="6" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+        <rect y="30" width="150" height="6" rx="3" fill="#ffffff"/>
+      </g>
+      <g transform="translate(24 176)">
+        <text font-size="12" fill-opacity="0.7">Quora</text>
+        <text y="20" font-size="15" font-weight="600">“Alternative to a pricey CRM?”</text>
+        <rect y="30" width="200" height="6" rx="3" fill="#ffffff" fill-opacity="0.2"/>
+        <rect y="30" width="128" height="6" rx="3" fill="#ffffff"/>
+      </g>
+    </g>
+  </g>
+</svg>

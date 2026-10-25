@@ -1,0 +1,14 @@
+{
+  "name": "openreach",
+  "owner": { "name": "OpenReach" },
+  "metadata": {
+    "description": "The OpenReach plugin: the MCP connection plus marketing and outreach skills."
+  },
+  "plugins": [
+    {
+      "name": "openreach",
+      "source": "./plugins/openreach",
+      "description": "Connect to OpenReach over MCP and get skills for finding influencers, local business leads and customers in communities, and for monitoring brand mentions."
+    }
+  ]
+}
