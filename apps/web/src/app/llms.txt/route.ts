@@ -2,6 +2,7 @@ import { docPages } from '@/content/docs';
 import { features } from '@/content/features';
 import { glossaryCategories, termsIn } from '@/content/glossary';
 import { plainText } from '@/components/rich-text';
+import { templatePages } from '@/content/templates';
 import { tools } from '@/content/tools';
 import { GITHUB_URL, MCP_URL, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site';
 
@@ -34,6 +35,11 @@ export function GET() {
     '## Docs',
     '',
     ...docPages.map((doc) => link(doc.h1, `/docs/${doc.slug}`, doc.description)),
+    '',
+    '## Email templates',
+    '',
+    link('Outreach email templates', '/templates', 'Cold email, follow-up and influencer outreach templates to copy, each with subject lines and why it works.'),
+    ...templatePages.map((page) => link(page.h1, `/templates/${page.slug}`, page.description)),
     '',
     '## Marketing glossary',
     '',

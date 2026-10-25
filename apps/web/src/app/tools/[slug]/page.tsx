@@ -5,6 +5,7 @@ import { ArrowRight, ArrowUpRight, Check } from 'lucide-react';
 import { BrandRow, brandName } from '@/components/brand-icon';
 import { ButtonLink } from '@/components/button';
 import { CtaBand } from '@/components/cta-band';
+import { EngagementCalculator } from '@/components/engagement-calculator';
 import { FaqList } from '@/components/faq';
 import { FreeTool } from '@/components/free-tool';
 import { JsonLd } from '@/components/json-ld';
@@ -109,12 +110,17 @@ export default async function ToolPage({ params }: ToolPageProps) {
                   <FreeTool kind={tool.freeTool} apiUrl={PUBLIC_API_URL} appHref={open} signUpHref={SIGN_UP_URL} />
                 </div>
               ) : null}
+              {tool.calculator === 'engagement' ? (
+                <div className="mt-10">
+                  <EngagementCalculator />
+                </div>
+              ) : null}
               <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
-                <ButtonLink href={open} size={tool.freeTool ? 'md' : 'lg'} variant={tool.freeTool ? 'secondary' : 'primary'}>
+                <ButtonLink href={open} size={tool.freeTool || tool.calculator ? 'md' : 'lg'} variant={tool.freeTool || tool.calculator ? 'secondary' : 'primary'}>
                   Open the {inSentence(tool.name)}
                   <ArrowRight className="size-4" aria-hidden="true" />
                 </ButtonLink>
-                <ButtonLink href={tool.guide} variant="secondary" size={tool.freeTool ? 'md' : 'lg'}>
+                <ButtonLink href={tool.guide} variant="secondary" size={tool.freeTool || tool.calculator ? 'md' : 'lg'}>
                   Read the guide
                 </ButtonLink>
               </div>

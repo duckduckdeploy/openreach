@@ -34,6 +34,12 @@ export default function FeaturesPage() {
         <div className="mt-14 md:mt-16">
           <FeatureGrid headingLevel="h2" />
         </div>
+        <div className="mt-20 md:mt-24">
+          <SectionHeader eyebrow="MCP servers" id="platform-mcp-title" title="MCP servers for each platform" lede="The same MCP server, explained for one platform at a time: what your agent can ask for and the tools it uses." />
+          <div className="mt-12">
+            <FeatureGrid group="platform-mcp" />
+          </div>
+        </div>
       </section>
       <div className="mb-20 md:mb-28">
         <YepapiOffer />

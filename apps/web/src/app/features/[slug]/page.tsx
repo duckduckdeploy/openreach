@@ -4,16 +4,20 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { BrandRow, brandName } from '@/components/brand-icon';
 import { ButtonLink } from '@/components/button';
+import { CodeBlock } from '@/components/code-block';
+import { CopyPromptButton } from '@/components/copy-prompt-button';
 import { CtaBand } from '@/components/cta-band';
 import { FaqList } from '@/components/faq';
 import { JsonLd } from '@/components/json-ld';
 import { PriceTable } from '@/components/price-table';
+import { RichText } from '@/components/rich-text';
 import { StatusNote } from '@/components/section';
 import { YepapiOffer } from '@/components/yepapi-offer';
 import { features, getFeature } from '@/content/features';
+import { setupPrompt } from '@/content/snippets';
 import { pageMeta } from '@/lib/metadata';
 import { breadcrumbList, faqPage } from '@/lib/schema';
-import { SIGN_UP_URL, SITE_NAME, SITE_URL } from '@/lib/site';
+import { MCP_URL, SIGN_UP_URL, SITE_NAME, SITE_URL } from '@/lib/site';
 
 interface FeaturePageProps {
   params: Promise<{ slug: string }>;
@@ -43,9 +47,11 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
   const feature = getFeature(slug);
   if (!feature) notFound();
 
-  const index = features.indexOf(feature);
-  const previous = features[index - 1];
-  const next = features[index + 1];
+  // Previous and next stay within the feature's group: core features, or the platform MCP pages.
+  const siblings = features.filter((other) => other.group === feature.group);
+  const index = siblings.indexOf(feature);
+  const previous = siblings[index - 1];
+  const next = siblings[index + 1];
   const Icon = feature.icon;
 
   return (
@@ -123,12 +129,57 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
             </h2>
             <div className="mt-8 space-y-6 text-xl leading-relaxed text-pretty text-muted">
               {feature.what.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
+                <p key={paragraph}>
+                  <RichText text={paragraph} />
+                </p>
               ))}
             </div>
           </div>
           </div>
         </section>
+
+        {feature.prompts ? (
+          <section aria-labelledby="prompts-title" className="band-white border-b border-line">
+            <div className="container-page py-20 md:py-28">
+              <div className="mx-auto max-w-3xl text-center">
+                <p className="eyebrow">Ask your agent</p>
+                <h2 id="prompts-title" className="text-title mt-4">
+                  {feature.prompts.title}
+                </h2>
+              </div>
+              <ul className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-4 md:grid-cols-2">
+                {feature.prompts.items.map((prompt) => (
+                  <li key={prompt} className="card p-6 text-lg leading-relaxed text-pretty">
+                    “{prompt}”
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        ) : null}
+
+        {feature.tools ? (
+          <section aria-labelledby="tools-title" className="band-cream">
+            <div className="container-page py-20 md:py-28">
+              <div className="mx-auto max-w-3xl text-center">
+                <p className="eyebrow">MCP tools</p>
+                <h2 id="tools-title" className="text-title mt-4">
+                  {feature.tools.title}
+                </h2>
+              </div>
+              <dl className="mx-auto mt-12 max-w-3xl divide-y divide-line border-y border-line">
+                {feature.tools.items.map((tool) => (
+                  <div key={tool.name} className="grid gap-2 py-5 sm:grid-cols-[13rem_1fr] sm:gap-6">
+                    <dt className="font-mono text-[0.9375rem] font-medium text-ink">{tool.name}</dt>
+                    <dd className="leading-relaxed text-muted">
+                      <RichText text={tool.body} />
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </section>
+        ) : null}
 
         {/* What you can do */}
         <section aria-labelledby="can-title" className="band-night">
@@ -147,13 +198,50 @@ export default async function FeaturePage({ params }: FeaturePageProps) {
                   </span>
                   <div>
                   <h3 className="card-title">{capability.title}</h3>
-                  <p className="mt-2 leading-relaxed text-muted [overflow-wrap:anywhere]">{capability.body}</p>
+                  <p className="mt-2 leading-relaxed text-muted [overflow-wrap:anywhere]">
+                    <RichText text={capability.body} />
+                  </p>
                   </div>
                 </li>
               ))}
             </ul>
           </div>
         </section>
+
+        {feature.connectTitle ? (
+          <section aria-labelledby="connect-title" className="band-white border-b border-line">
+            <div className="container-page py-20 md:py-28">
+              <div className="mx-auto max-w-3xl">
+                <div className="text-center">
+                  <p className="eyebrow">Connect</p>
+                  <h2 id="connect-title" className="text-title mt-4">
+                    {feature.connectTitle}
+                  </h2>
+                  <p className="mt-6 text-xl leading-relaxed text-pretty text-muted">
+                    Create an API key in Settings, then add the server. The fastest way: copy the setup prompt into your agent and it connects itself.
+                  </p>
+                  <div className="mt-8 flex justify-center">
+                    <CopyPromptButton text={setupPrompt} />
+                  </div>
+                </div>
+                <CodeBlock
+                  className="mt-10"
+                  label="Claude Code"
+                  code={`claude mcp add --transport http openreach ${MCP_URL} \\
+  --header "Authorization: Bearer $OPENREACH_API_KEY"`}
+                />
+                <p className="mt-6 text-center text-[0.9375rem] text-muted">
+                  ChatGPT and Claude can sign in with OAuth instead of a key. Config for Claude Desktop, Cursor, VS Code, Codex, Gemini CLI and others is in
+                  the{' '}
+                  <Link href="/docs/mcp" className="font-medium text-accent-text underline decoration-accent-line underline-offset-4 hover:decoration-accent">
+                    MCP setup guide
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {/* What each action costs */}
         <section id="costs" aria-labelledby="costs-title" className="band-cream container-page scroll-mt-20 py-20 md:py-28">

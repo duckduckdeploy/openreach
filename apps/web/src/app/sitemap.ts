@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { docPages } from '@/content/docs';
 import { features } from '@/content/features';
 import { glossary, glossaryCategories } from '@/content/glossary';
+import { templatePages } from '@/content/templates';
 import { tools } from '@/content/tools';
 import { SITE_URL } from '@/lib/site';
 
@@ -19,6 +20,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/why-openreach', priority: 0.7 },
     { path: '/docs', priority: 0.7 },
     ...docPages.map((doc) => ({ path: `/docs/${doc.slug}`, priority: 0.6 })),
+    { path: '/templates', priority: 0.7 },
+    ...templatePages.map((page) => ({ path: `/templates/${page.slug}`, priority: 0.7 })),
     { path: '/glossary', priority: 0.7 },
     ...glossaryCategories.map((category) => ({ path: `/glossary/topics/${category.id}`, priority: 0.6 })),
     ...glossary.map((term) => ({ path: `/glossary/${term.slug}`, priority: 0.6 })),

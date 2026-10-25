@@ -22,6 +22,8 @@ export interface ResearchTool {
   group: ToolGroup;
   /** A free version on the page itself, no account needed (components/free-tool.tsx). */
   freeTool?: FreeToolKind;
+  /** An in-browser calculator on the page instead (components/engagement-calculator.tsx): no account, no API call. */
+  calculator?: 'engagement';
   /** The tool's name in the app. */
   name: string;
   icon: LucideIcon;
@@ -304,20 +306,23 @@ export const tools: ResearchTool[] = [
     slug: 'engagement-rate-calculator',
     glossary: ['engagement-rate', 'fake-followers', 'follower-audit'],
     group: 'Influencers',
+    calculator: 'engagement',
     name: 'Creator analyser',
     icon: BadgePercent,
     seoTitle: 'Engagement Rate Calculator for TikTok, Instagram, YouTube',
     absoluteTitle: true,
     h1: 'Engagement rate calculator',
-    headline: 'Any creator’s real reach, from their recent posts.',
+    headline: 'Type in the numbers, or let OpenReach read the posts.',
     summary: 'The engagement rate, average views and posting frequency of any TikTok, Instagram or YouTube account.',
-    description: 'Engagement rate calculator for TikTok, Instagram and YouTube: paste a handle to see average views, likes, comments, posts per week and contact details.',
-    lede: 'Paste a handle or profile link. OpenReach reads the profile and recent posts and works out the engagement rate, average views, likes and comments, and how often the account posts.',
-    points: ['Engagement rate', 'Average views per post', 'Posting frequency'],
+    description: 'Free engagement rate calculator for Instagram, TikTok and YouTube: by followers and by views. Or paste a handle to have every recent post counted for you.',
+    lede: 'Enter followers, likes, comments and views below for an instant rate, by followers and by views. In the app, paste a handle instead: OpenReach reads the recent posts and works out the rate, average views and posting frequency for you.',
+    points: ['Free calculator, no sign-up', 'By followers and by views', 'Or from a handle in the app'],
     appPath: '/tools/creator',
     worksWith: ['tiktok', 'instagram', 'youtube'],
     sectionsTitle: 'How the engagement rate is calculated',
     sections: [
+      { title: 'The formula', body: 'Engagement rate by followers = (likes + comments + shares + saves) per post ÷ followers × 100. By views, divide by the post’s views instead. Count the same interactions for every creator you compare.' },
+      { title: 'By followers or by views', body: 'By followers shows how much of the audience reacts; by views shows how much of the people who saw a post reacted. On TikTok and Reels, where most views come from people who do not follow, the rate by views is often the fairer one.' },
       { title: 'TikTok and Instagram', body: 'Average likes plus comments per recent post, divided by followers. Up to 30 TikTok videos or 12 Instagram posts are read.' },
       { title: 'YouTube', body: 'YouTube listings show views, not likes, so engagement is average views of recent videos divided by subscribers.' },
       { title: 'Posting frequency', body: 'Posts per week across the span the recent posts cover, and the date of the last one.' },
@@ -335,7 +340,21 @@ export const tools: ResearchTool[] = [
     costs: [{ action: 'Profile and recent posts', price: '$0.02 – $0.03' }],
     total: 'One creator costs $0.02 to $0.03',
     costNote: 'A YouTube handle is looked up first ($0.01); a channel ID skips that step.',
-    faqs: creatorFaqs,
+    faqs: [
+      {
+        question: 'How do you calculate engagement rate?',
+        answer: ['Add up a post’s likes, comments, shares and saves, divide by the account’s followers, and multiply by 100. For several posts, use the average per post. To calculate it by views, divide by the post’s views instead of the followers.'],
+      },
+      {
+        question: 'What is a good engagement rate?',
+        answer: ['It depends on the platform, the niche and the account’s size: smaller accounts usually have higher rates than large ones. Compare a creator with others of a similar size in the same niche, and look at the trend over their recent posts rather than one number.'],
+      },
+      {
+        question: 'Is the engagement rate calculator free?',
+        answer: ['Yes. The calculator on this page works in your browser, needs no account and sends nothing anywhere. Analysing a creator from a handle in the app reads their real posts and is a paid lookup from your own YepAPI key ($0.02 to $0.03).'],
+      },
+      ...creatorFaqs,
+    ],
     guide: '/docs/tutorials/find-influencers',
   },
 

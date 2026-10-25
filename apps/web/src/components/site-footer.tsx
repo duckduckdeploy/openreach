@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { docPages, docsIn } from '@/content/docs';
 import { features } from '@/content/features';
+import { templatePages } from '@/content/templates';
 import { tools } from '@/content/tools';
 import { GITHUB_URL, SIGN_IN_URL, SIGN_UP_URL } from '@/lib/site';
 import { BrandIcon } from './brand-icon';
@@ -41,7 +42,7 @@ export function SiteFooter() {
           </ul>
           <h2 className="mt-9 mb-5 text-sm font-semibold text-ink">Features</h2>
           <ul className="space-y-3">
-            {features.map((feature) => (
+            {features.filter((feature) => !feature.group).map((feature) => (
               <li key={feature.slug}>
                 <Link href={`/features/${feature.slug}`} className={linkClass}>
                   {feature.name}
@@ -73,6 +74,16 @@ export function SiteFooter() {
               <li key={doc.slug}>
                 <Link href={`/docs/${doc.slug}`} className={linkClass}>
                   {doc.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <h2 className="mt-9 mb-5 text-sm font-semibold text-ink">Templates</h2>
+          <ul className="space-y-3">
+            {templatePages.map((page) => (
+              <li key={page.slug}>
+                <Link href={`/templates/${page.slug}`} className={linkClass}>
+                  {page.name}
                 </Link>
               </li>
             ))}

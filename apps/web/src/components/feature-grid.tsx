@@ -1,10 +1,11 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { features } from '@/content/features';
+import { features as allFeatures, type Feature } from '@/content/features';
 
-/** Every feature as a card with its icon, summary and a link to its page. */
-export function FeatureGrid({ headingLevel = 'h3' }: { headingLevel?: 'h2' | 'h3' }) {
+/** The features of one group as cards with their icon, summary and a link to their page: the core features by default. */
+export function FeatureGrid({ headingLevel = 'h3', group }: { headingLevel?: 'h2' | 'h3'; group?: Feature['group'] }) {
   const Heading = headingLevel;
+  const features = allFeatures.filter((feature) => feature.group === group);
 
   return (
     <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
