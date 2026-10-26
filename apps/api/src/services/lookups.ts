@@ -3,7 +3,7 @@ import type { YepApi } from "@openreach/yepapi";
 import { z } from "zod";
 import { analyseCreator, ANALYSE_USD, discoverCreators, discoveryCalls, similarInstagram } from "../lib/creators";
 import { dedupeLeads, EMAIL_USD, findLeadEmails, MAPS_PAGE_USD, searchPlaces } from "../lib/leads";
-import { AI_MIN_USD, aiScore, applyVerdicts, planSearches, rankCommunities, runSearches, type SearchRequest } from "../lib/mention-search";
+import { AI_MIN_USD, aiScore, applyVerdicts, planSearches, rankCommunities, runSearches, SERP_ATTEMPTS, type SearchRequest } from "../lib/mention-search";
 import { mapLimit } from "../lib/pool";
 
 /**
@@ -55,12 +55,13 @@ const depth = z.union([z.literal(10), z.literal(20)]).default(10).describe("Goog
 const days = z.number().int().min(1).max(3650).optional().describe("Only pages from the last N days");
 const aiScoring = z.boolean().default(false).describe("Let an AI model check each result's relevance, intent and sentiment. About $0.01 per 25 results.");
 
-const since = (d?: number) => (d ? new Date(Date.now() - d * DAY) : undefined);
+/** DAY is in seconds (cache TTLs); dates are in milliseconds. */
+const since = (d?: number) => (d ? new Date(Date.now() - d * DAY * 1000) : undefined);
 
 /** Price of a community search: Google searches, plus the AI pass when asked (token-priced, so open-ended). */
 function searchEstimate(request: SearchRequest, ai: boolean): Estimate {
   const plan = planSearches(request);
-  const formula = `${plan.serpSearches} Google searches × $${(Math.ceil((request.depth ?? 10) / 10) * 0.01).toFixed(2)}, again for any that find nothing at first${plan.apiSearches ? ` + ${plan.apiSearches} free API searches` : ""}${ai ? " + AI scoring from $0.01 per 25 results" : ""}`;
+  const formula = `${plan.serpSearches} Google searches × $${(Math.ceil((request.depth ?? 10) / 10) * 0.01).toFixed(2)}, up to ${SERP_ATTEMPTS} tries each when Google drops site:${plan.apiSearches ? ` + ${plan.apiSearches} free API searches` : ""}${ai ? " + AI scoring from $0.01 per 25 results" : ""}`;
   return ai ? { min: round(plan.serpUsd + AI_MIN_USD), max: null, formula } : { min: plan.serpUsd, max: plan.serpUsdMax, formula };
 }
 
@@ -231,7 +232,7 @@ export const lookups: Lookup[] = [
     name: "brand_mentions",
     title: "Brand mentions",
     description:
-      "Pages in communities that name your brand: Reddit, Quora, Hacker News, GitHub, Stack Overflow, X, LinkedIn, Product Hunt, review sites and more. Each source is a Google search ($0.01 per 10 results) or a free official API. Results must contain one of the terms.",
+      "Pages in communities that name your brand: Reddit, Quora, Hacker News, GitHub, Stack Overflow, X, LinkedIn, Product Hunt, review sites and more. Each source is a free official API or a Google site: search ($0.01 per 10 results, retried in another form when Google drops site:). Results must contain one of the terms. Defaults to the last 30 days.",
     feature: "mentions",
     ttl: 6 * HOUR,
     input: z.object({
@@ -239,7 +240,7 @@ export const lookups: Lookup[] = [
       excludes: z.array(z.string().trim().min(2).max(60)).max(10).default([]).describe("Drop results containing these words"),
       sources: sources(DEFAULT_MENTION_SOURCES),
       depth,
-      days,
+      days: days.default(30),
       aiScoring,
     }),
     estimate: (i) => searchEstimate({ mode: "brand", terms: i.terms, excludes: i.excludes, sources: i.sources, depth: i.depth, since: since(i.days) }, i.aiScoring),

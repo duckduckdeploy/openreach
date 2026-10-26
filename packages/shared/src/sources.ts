@@ -4,10 +4,10 @@
  * Every source is searched one of two ways:
  * - `api`: a free official API, called from the OpenReach server (Hacker News, GitHub, Stack Exchange,
  *   and Reddit when the operator has set up Reddit API credentials).
- * - otherwise a Google search through YepAPI at $0.01 per 10 results: the words plus the source's
- *   name ("crm for small business reddit"), falling back to `site:` when that finds nothing on the
- *   source. Results whose host is not one of `domains` are dropped. (Tested 2026-10-25: through
- *   YepAPI the `site:` operator was honoured only some of the time; the plain form every time.)
+ * - otherwise a Google search through YepAPI at $0.01 per 10 results: `site:` plus the words and
+ *   `after:` for fresh pages. YepAPI's Google drops `site:` on some calls, so a dropped one is
+ *   tried with `site:` at the end and then as the words plus the source's name ("crm for small
+ *   business reddit"). Results whose host is not one of `domains` are dropped.
  *
  * OpenReach never scrapes a site that refuses it. Sites that block servers (Reddit, Quora, X…) are
  * reached through search results or their official API only.

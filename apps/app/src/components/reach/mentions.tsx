@@ -206,20 +206,23 @@ export const mentionCsv = (rows: FeedItem[]) =>
   }));
 
 const DAYS = [
+  { id: "7", label: "7 days" },
   { id: "30", label: "30 days" },
   { id: "90", label: "90 days" },
   { id: "365", label: "1 year" },
 ] as const;
 
+type Days = (typeof DAYS)[number]["id"];
+
 /** Shared settings row of the community tools: sources and period, kept in the URL. */
-function SearchSettings({ defaults, extra }: { defaults: string[]; extra?: ReactNode }) {
+function SearchSettings({ defaults, days, extra }: { defaults: string[]; days: Days; extra?: ReactNode }) {
   const params = useSearchParams();
   const nav = useToolNav();
   const [open, setOpen] = useState(false);
   const sources = params.get("sources") ? list(params.get("sources")) : defaults;
   return (
     <>
-      <Segmented label="Period" value={(DAYS.find((d) => d.id === params.get("days"))?.id ?? "90") as "90"} onChange={(value) => nav({ days: value === "90" ? null : value })} options={DAYS.map((d) => ({ ...d }))} />
+      <Segmented label="Period" value={DAYS.find((d) => d.id === params.get("days"))?.id ?? days} onChange={(value) => nav({ days: value === days ? null : value })} options={DAYS.map((d) => ({ ...d }))} />
       {extra}
       <Button size="sm" variant="ghost" onClick={() => setOpen(!open)} aria-expanded={open}>
         <Hash className="size-3.5" aria-hidden /> {sources.length} sources
@@ -277,7 +280,7 @@ function Results({ data, lookup, title, showIntent }: { data: SearchResult; look
   );
 }
 
-const daysOf = (params: URLSearchParams, fallback = 90) => Number(params.get("days")) || fallback;
+const daysOf = (params: URLSearchParams, fallback: number) => Number(params.get("days")) || fallback;
 
 /** Brand mentions: pages that name the brand, across the chosen communities. */
 export function BrandMentions({ project }: { project: Project }) {
@@ -287,7 +290,7 @@ export function BrandMentions({ project }: { project: Project }) {
   const sources = params.get("sources") ? list(params.get("sources")) : DEFAULT_MENTION_SOURCES;
   const exclude = list(params.get("not"));
   const [excludeText, setExcludeText] = useUrlText(exclude.join(", "));
-  const lookup = useLookupQuery<SearchResult>(project.id, "brand_mentions", terms.length ? { terms: terms.slice(0, 5), excludes: exclude, sources, days: daysOf(params) } : null);
+  const lookup = useLookupQuery<SearchResult>(project.id, "brand_mentions", terms.length ? { terms: terms.slice(0, 5), excludes: exclude, sources, days: daysOf(params, 30) } : null);
   return (
     <>
       <SearchBar
@@ -300,7 +303,7 @@ export function BrandMentions({ project }: { project: Project }) {
         pending={lookup.loading}
         extra={<Input value={excludeText} onChange={(event) => setExcludeText(event.target.value)} placeholder="Leave out words, e.g. jobs" aria-label="Words to leave out" className="h-11 w-full text-[14px] sm:w-52" />}
       >
-        <SearchSettings defaults={DEFAULT_MENTION_SOURCES} />
+        <SearchSettings defaults={DEFAULT_MENTION_SOURCES} days="30" />
       </SearchBar>
       {!terms.length && (
         <RunPrompt title="Where people talk about your product">
@@ -337,6 +340,7 @@ export function CustomerFinder({ project }: { project: Project }) {
       >
         <SearchSettings
           defaults={DEFAULT_CONVERSATION_SOURCES}
+          days="365"
           extra={
             <label className="inline-flex items-center gap-2 text-[13px] text-muted">
               <input type="checkbox" className="size-3.5 accent-(--color-accent)" checked={ai} onChange={(event) => nav({ ai: event.target.checked })} />

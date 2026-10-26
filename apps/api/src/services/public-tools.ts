@@ -65,7 +65,7 @@ const TOOLS = {
   },
   "brand-mentions": {
     input: z.object({ brand: text }),
-    lookup: (i: { brand: string }) => ({ name: "brand_mentions", input: { terms: [i.brand], sources: FREE_MENTION_SOURCES, depth: 10, days: 90 } }),
+    lookup: (i: { brand: string }) => ({ name: "brand_mentions", input: { terms: [i.brand], sources: FREE_MENTION_SOURCES, depth: 10, days: 30 } }),
     shape: (data: { mentions?: unknown[]; communities?: unknown[] }) => ({ mentions: (data.mentions ?? []).slice(0, 40), communities: (data.communities ?? []).slice(0, 10) }),
   },
 } as const;
@@ -74,7 +74,7 @@ export type PublicTool = keyof typeof TOOLS;
 export const PUBLIC_TOOLS = Object.keys(TOOLS) as PublicTool[];
 
 /** The most any single free run may cost. Every capped input above stays under it. */
-const MAX_RUN_USD = 0.1;
+const MAX_RUN_USD = 0.15;
 
 export const publicToolsEnabled = () => Boolean(env.PUBLIC_TOOLS_YEPAPI_KEY);
 

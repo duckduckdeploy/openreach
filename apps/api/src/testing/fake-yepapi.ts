@@ -27,12 +27,13 @@ function siteFromWords(query: string): { site: string; words: string } | null {
 /**
  * Google results. A query aimed at a site (`site:` or the plain "… reddit" form) answers with pages
  * on that site, plus one stray page elsewhere, as Google sometimes gives. A plain query containing
- * "plainmiss" finds nothing on the site, so the engine's site: fallback runs.
+ * "plainmiss" finds nothing on the site; one starting "site:… sitedrop" plays a dropped operator.
  */
 function serp(body: any) {
   const raw = String(body.query ?? "").replace(/\s(after:\S+|-\S+)/g, "");
-  const operator = raw.match(/site:(\S+)/)?.[1];
-  const plain = operator ? null : siteFromWords(raw);
+  const dropped = raw.includes("sitedrop") && raw.startsWith("site:");
+  const operator = dropped ? undefined : raw.match(/site:(\S+)/)?.[1];
+  const plain = operator || dropped ? null : siteFromWords(raw);
   const site = operator ?? (plain && !raw.includes("plainmiss") ? plain.site : undefined);
   const words = (plain?.words ?? raw.replace(/site:\S+/g, "")).trim();
   const query = String(body.query ?? "");

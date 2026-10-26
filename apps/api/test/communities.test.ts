@@ -14,13 +14,14 @@ describe("brand mentions", () => {
     const { api, project } = await readyUser();
     const before = since();
     const priced = await api.ok("POST", `/projects/${project.id}/lookups/brand_mentions?dryRun=1`, { terms: ["acmecrm"], sources: ["reddit", "hackernews", "github", "quora"] });
-    // Reddit and Quora through Google, Hacker News and GitHub free.
-    expect(priced.estimate).toMatchObject({ min: 0.02, max: 0.04 });
+    // Reddit and Quora through Google (up to three tries each), Hacker News and GitHub free.
+    expect(priced.estimate).toMatchObject({ min: 0.02, max: 0.06 });
     expect(priced.estimate.formula).toMatch(/2 Google searches .* 2 free API searches/);
 
     const res = await api.ok("POST", `/projects/${project.id}/lookups/brand_mentions`, { terms: ["acmecrm"], excludes: ["jobs"], sources: ["reddit", "hackernews", "github", "quora"] });
     const serps = callsTo("/v1/serp/google", before).map((r) => r.body.query);
-    expect(serps.sort()).toEqual(["acmecrm quora -jobs", "acmecrm reddit -jobs"]);
+    // site: first, last 30 days by default.
+    expect(serps.sort()).toEqual([expect.stringMatching(/^site:quora\.com acmecrm -jobs after:\d{4}-\d{2}-\d{2}$/), expect.stringMatching(/^site:reddit\.com acmecrm -jobs after:\d{4}-\d{2}-\d{2}$/)]);
     expect(callsTo("/hn/api/v1/search_by_date", before)).toHaveLength(1);
     expect(res.costUsd).toBe(0.02);
     const mentions = res.data.mentions as { url: string; sourceId: string; community: string | null }[];
@@ -31,11 +32,15 @@ describe("brand mentions", () => {
     expect(res.data.communities[0]).toMatchObject({ threads: expect.any(Number) });
   });
 
-  it("falls back to site: when the plain search finds nothing on the source, and drops off-topic conversations", async () => {
+  it("tries site: again in another order when Google drops it, and drops off-topic conversations", async () => {
     const { api, project } = await readyUser();
     const before = since();
-    const res = await api.ok("POST", `/projects/${project.id}/lookups/brand_mentions`, { terms: ["plainmiss"], sources: ["quora"] });
-    expect(callsTo("/v1/serp/google", before).map((r) => r.body.query)).toEqual(["plainmiss quora", "site:quora.com plainmiss"]);
+    const res = await api.ok("POST", `/projects/${project.id}/lookups/brand_mentions`, { terms: ["sitedrop"], sources: ["quora"], days: 7 });
+    const queries = callsTo("/v1/serp/google", before).map((r) => r.body.query as string);
+    expect(queries).toEqual([expect.stringMatching(/^site:quora\.com sitedrop after:/), expect.stringMatching(/^sitedrop after:\S+ site:quora\.com$/)]);
+    const age = (Date.now() - Date.parse(queries[0]!.split("after:")[1]!)) / 86_400_000;
+    expect(age).toBeGreaterThan(6.9);
+    expect(age).toBeLessThan(8);
     expect(res.costUsd).toBe(0.02);
     expect(res.data.mentions.length).toBeGreaterThan(0);
 
@@ -43,6 +48,17 @@ describe("brand mentions", () => {
     expect(onTopic("Best CRM for small businesses?", "crm for small business", [])).toBe(true);
     expect(onTopic("Can someone explain em dash?", "crm for small business", [])).toBe(false);
     expect(onTopic("Leaving HubSpot, what next?", "crm for small business", ["HubSpot"])).toBe(true);
+  });
+
+  it("moves to the next form when YepAPI fails on one, and warns only when every form failed", async () => {
+    const { api, project } = await readyUser();
+    const before = since();
+    harness.fake.failures.set("/v1/serp/google", [{ status: 503, code: "UPSTREAM_ERROR" }]);
+    const res = await api.ok("POST", `/projects/${project.id}/lookups/brand_mentions`, { terms: ["acmeflaky"], sources: ["quora"] });
+    harness.fake.failures.delete("/v1/serp/google");
+    expect(callsTo("/v1/serp/google", before).map((r) => r.body.query as string).at(-1)).toMatch(/^acmeflaky after:\S+ site:quora\.com$/);
+    expect(res.data.warnings).toEqual([]);
+    expect(res.data.mentions.length).toBeGreaterThan(0);
   });
 
   it("keeps going when one free API fails, and says so", async () => {
@@ -63,7 +79,7 @@ describe("customer finder", () => {
     const res = await api.ok("POST", `/projects/${project.id}/lookups/find_conversations`, { problems: ["crm for plumbers"], competitors: ["HubSpot"], sources: ["reddit"], phrasings: 2 });
     const queries = callsTo("/v1/serp/google", before).map((r) => r.body.query as string);
     expect(queries).toHaveLength(3);
-    expect(queries[0]).toMatch(/^crm for plumbers reddit after:\d{4}-\d{2}-\d{2}$/);
+    expect(queries[0]).toMatch(/^site:reddit\.com crm for plumbers after:\d{4}-\d{2}-\d{2}$/);
     expect(queries.some((q) => q.includes("HubSpot alternative"))).toBe(true);
     const intents = (res.data.mentions as { intent: number }[]).map((m) => m.intent);
     expect(intents).toEqual([...intents].sort((a, b) => b - a));
@@ -95,7 +111,7 @@ describe("monitors", () => {
     const { api, project } = await readyUser({ description: "A CRM for plumbers" });
     const draft = { kind: "brand", terms: ["acmewatch"], sources: ["reddit", "hackernews"], schedule: "weekly" };
     const priced = await api.ok("POST", `/projects/${project.id}/monitors?dryRun=1`, draft);
-    expect(priced.estimate).toMatchObject({ googleSearches: 1, freeSearches: 1, run: { min: 0.01, max: 0.02 }, month: { min: 0.04 } });
+    expect(priced.estimate).toMatchObject({ googleSearches: 1, freeSearches: 1, run: { min: 0.01, max: 0.03 }, month: { min: 0.04 } });
 
     const monitor = await api.ok("POST", `/projects/${project.id}/monitors`, draft);
     expect(monitor.nextRunAt).not.toBeNull();

@@ -40,10 +40,16 @@ export type SearchRequest = {
   since?: Date;
 };
 
-/** `fallback`: a `site:` form of the same search, run only when `query` finds nothing on the source. */
-export type PlannedSearch = { source: Source; query: string; fallback?: string; via: "api" | "serp"; term: string };
+/**
+ * `retries`: other forms of the same Google search, run in order only while YepAPI's Google has
+ * dropped the operator (results are not on the source); see `honoured`.
+ */
+export type PlannedSearch = { source: Source; query: string; retries?: string[]; via: "api" | "serp"; term: string };
 
-/** `serpUsd` is the price when every search finds something; each fallback can add as much again, up to `serpUsdMax`. */
+/** Google searches per source at most: `site:`, `site:` again in another order, then the plain form. */
+export const SERP_ATTEMPTS = 3;
+
+/** `serpUsd` is the price when the first try of every search works; retries can add up to `serpUsdMax`. */
 export type SearchPlan = { searches: PlannedSearch[]; serpSearches: number; apiSearches: number; serpUsd: number; serpUsdMax: number };
 
 const SERP_USD_PER_PAGE = 0.01;
@@ -67,19 +73,21 @@ export function planSearches(request: SearchRequest): SearchPlan {
         if (viaApi) {
           searches.push({ source, query, via: "api", term });
         } else {
-          // The source's name rather than site:, which YepAPI's Google honours only some of the
-          // time; site: stays as the fallback. Words unquoted: with quotes Google drops site:.
+          // site: first, for results from the source only. YepAPI's Google drops operators on some
+          // calls (whole page on the source, or none of it), so a dropped one is tried once more in
+          // another order and then as the words plus the source's name. Words unquoted: with
+          // quotes Google drops site:. after: holds on every form.
           const after = request.since ? afterOperator(request.since) : "";
-          const plain = [query, wordOf(source), excludes, after].filter(Boolean).join(" ");
-          const fallback = [`site:${siteOf(source)}`, query, excludes, after].filter(Boolean).join(" ");
-          searches.push({ source, query: plain, fallback, via: "serp", term });
+          const site = `site:${siteOf(source)}`;
+          const join = (...parts: string[]) => parts.filter(Boolean).join(" ");
+          searches.push({ source, query: join(site, query, excludes, after), retries: [join(query, excludes, after, site), join(query, wordOf(source), excludes, after)], via: "serp", term });
         }
       }
     }
   }
   const serpSearches = searches.filter((s) => s.via === "serp").length;
   const serpUsd = Math.round(serpSearches * Math.ceil(depth / 10) * SERP_USD_PER_PAGE * 100) / 100;
-  return { searches, serpSearches, apiSearches: searches.length - serpSearches, serpUsd, serpUsdMax: Math.round(serpUsd * 2 * 100) / 100 };
+  return { searches, serpSearches, apiSearches: searches.length - serpSearches, serpUsd, serpUsdMax: Math.round(serpUsd * SERP_ATTEMPTS * 100) / 100 };
 }
 
 export const aiBatches = (results: number) => Math.ceil(results / AI_BATCH);
@@ -129,6 +137,15 @@ function fromSerp(search: PlannedSearch, result: GoogleSerpResult): Raw | null {
   };
 }
 
+/**
+ * True when Google kept the operator: no results at all (nothing on the source), or at least half
+ * of them on the source. A dropped `site:` returns the open web, with the source rarely in it.
+ */
+export function honoured(source: Source, results: GoogleSerpResult[]): boolean {
+  const organic = results.filter((result) => result.type === "organic" && result.url);
+  return organic.length === 0 || organic.filter((result) => belongsTo(source, result.url)).length * 2 >= organic.length;
+}
+
 const fromApi = (search: PlannedSearch, hit: CommunityHit): Raw => ({ ...hit, sourceId: search.source.id, term: search.term });
 
 export type SearchOutcome = { mentions: Mention[]; costUsd: number; warnings: string[]; searchesDone: number };
@@ -157,14 +174,24 @@ export async function runSearches(
         const hits = await searchApi(search.source.api, search.query, { since: request.since, limit: 30 });
         raw.push(...hits.map((hit) => fromApi(search, hit)));
       } else {
-        let found: Raw[] = [];
-        for (const query of [search.query, search.fallback]) {
-          if (!query || found.length) break;
-          const res = await yep.serp.google({ query, depth });
-          costUsd += res.costUsd;
-          found = (res.data.results ?? []).map((result) => fromSerp(search, result)).filter((item): item is Raw => item !== null);
+        // Results on the source are kept from every try; the next form runs after a dropped operator
+        // or an upstream failure. The search fails only when every form failed.
+        let failure: unknown = null;
+        let answered = false;
+        for (const query of [search.query, ...(search.retries ?? [])]) {
+          try {
+            const res = await yep.serp.google({ query, depth });
+            costUsd += res.costUsd;
+            answered = true;
+            const results = res.data.results ?? [];
+            raw.push(...results.map((result) => fromSerp(search, result)).filter((item): item is Raw => item !== null));
+            if (honoured(search.source, results)) break;
+          } catch (error) {
+            if (hooks.isFatal?.(error)) throw error;
+            failure = error;
+          }
         }
-        raw.push(...found);
+        if (!answered) throw failure;
       }
     } catch (error) {
       if (hooks.isFatal?.(error)) {
